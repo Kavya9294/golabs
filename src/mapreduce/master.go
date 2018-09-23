@@ -37,21 +37,11 @@ func (mr *MapReduce) RunMaster() *list.List {
 	mr.Workers = make(map[string]*WorkerInfo)
 	log.Print("Length of nWorkers: ", mr.nWorkers)
 	for i := 0; i < mr.nWorkers; i++ {
-		//address := <-mr.registerChannel
-		//log.Print("Value of address ",address)
-		//p := &WorkerInfo{address}
-		//log.Print("Value of p ",*p)
-		//index := strconv.Itoa(i)
-		//log.Print("Value of Index ",index)
-		//mr.Workers[index] = p
-		//log.Print("Value of Workers",mr.Workers)
 		addr := <-mr.registerChannel
 		mr.Workers[addr] = &WorkerInfo{address: addr, idle: true, failed: false}
 	}
 
 	for i := 0; i < mr.nMap; i++ {
-
-		//DPrintf("DoWork: Map %s\n", mr.Workers.address)
 		args := &DoJobArgs{}
 		args.File = mr.file
 		args.NumOtherPhase = mr.nReduce
@@ -60,26 +50,9 @@ func (mr *MapReduce) RunMaster() *list.List {
 		args.JobNumber = i
 		var reply DoJobReply
 		AssignWorker(args, reply, mr.nMap, mr)
-		//ok := call(mr.Worker.address, "Worker.DoJob",args, &reply)
-		//if ok == false {
-		//fmt.Printf("DoMap by worker %s failed due to error",mr.Worker.address)
-		//} else{
-		//log.Print("Value of OK: ",reply.OK)
-		//}
-
 	}
 
-	//for i:=0;i<mr.nWorkers;i++ {
-	//log.Printf("In Reduce woker pool")
-	//addr := <-mr.registerChannel
-	//log.Print("addr value: ",addr)
-	//mr.Workers[addr]= &WorkerInfo{ address: addr, idle: true}
-	//log.Print("Value of Workers: ",mr.Workers)
-	//}
-
 	for i := 0; i < mr.nReduce; i++ {
-
-		//DPrintf("DoWork: Map %s\n", mr.Workers.address)
 		args := &DoJobArgs{}
 		args.File = mr.file
 		args.NumOtherPhase = mr.nMap
@@ -88,12 +61,6 @@ func (mr *MapReduce) RunMaster() *list.List {
 		args.JobNumber = i
 		var reply DoJobReply
 		AssignWorker(args, reply, mr.nReduce, mr)
-		//ok := call(mr.Worker.address, "Worker.DoJob",args, &reply)
-		//if ok == false {
-		//fmt.Printf("DoMap by worker %s failed due to error",mr.Worker.address)
-		//} else{
-		//log.Print("Value of OK: ",reply.OK)
-		//}
 
 	}
 
@@ -102,7 +69,7 @@ func (mr *MapReduce) RunMaster() *list.List {
 
 func AssignWorker(args *DoJobArgs, reply DoJobReply, nums int, mr *MapReduce) {
 	i := 1
-	for i > 0 {
+	for i > 0 && mr.Workers != nil {
 		for _, w := range mr.Workers {
 			if w.idle == true && w.failed == false {
 				w.idle = false
@@ -111,6 +78,7 @@ func AssignWorker(args *DoJobArgs, reply DoJobReply, nums int, mr *MapReduce) {
 				if ok == false {
 					w.idle = true
 					w.failed = true
+					delete(mr.Workers, w.address)
 					i = 1
 					fmt.Printf("DoMap by worker %s failed due to error", w.address)
 				} else {
