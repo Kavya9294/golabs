@@ -83,7 +83,6 @@ func InitMapReduce(nmap int, nreduce int,
 
 	// initialize any additional state here
   mr.nWorkers = 0
-  mr.workDone = make(chan bool)
 	return mr
 }
 
