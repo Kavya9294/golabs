@@ -2,6 +2,7 @@ package mapreduce
 
 import "fmt"
 import "net/rpc"
+import "log"
 
 const (
 	Map    = "Map"
@@ -59,6 +60,7 @@ type RegisterReply struct {
 func call(srv string, rpcname string,
 	args interface{}, reply interface{}) bool {
 	c, errx := rpc.Dial("unix", srv)
+  log.Print("Value of c: ",c)
 	if errx != nil {
 		return false
 	}
