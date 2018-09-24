@@ -33,13 +33,8 @@ func (mr *MapReduce) KillWorkers() *list.List {
 
 func (mr *MapReduce) RunMaster() *list.List {
 	// Your code here
-	//l := list.New()
 	mr.Workers = make(map[string]*WorkerInfo)
 	log.Print("Length of nWorkers: ", mr.nWorkers)
-	for i := 0; i < mr.nWorkers; i++ {
-		addr := <-mr.registerChannel
-		mr.Workers[addr] = &WorkerInfo{address: addr, idle: true, failed: false}
-	}
 
 	for i := 0; i < mr.nMap; i++ {
 		args := &DoJobArgs{}
@@ -69,26 +64,33 @@ func (mr *MapReduce) RunMaster() *list.List {
 
 func AssignWorker(args *DoJobArgs, reply DoJobReply, nums int, mr *MapReduce) {
 	i := 1
-	for i > 0 && mr.Workers != nil {
-		for _, w := range mr.Workers {
-			if w.idle == true && w.failed == false {
-				w.idle = false
-				i = 0
-				ok := call(w.address, "Worker.DoJob", args, &reply)
-				if ok == false {
-					w.idle = true
-					w.failed = true
-					delete(mr.Workers, w.address)
-					i = 1
-					fmt.Printf("DoMap by worker %s failed due to error", w.address)
+	for i > 0 {
+		select {
+		case addr := <-mr.registerChannel:
+			mr.Workers[addr] = &WorkerInfo{address: addr, idle: true, failed: false}
+		default:
+			for _, w := range mr.Workers {
+				if w.idle == true && w.failed == false {
+					w.idle = false
+					i = 0
+					ok := call(w.address, "Worker.DoJob", args, &reply)
+					if ok == false {
+						w.idle = true
+						w.failed = true
+						delete(mr.Workers, w.address)
+						log.Print("Workers length: ")
+						i = 1
+						fmt.Printf("DoMap by worker %s failed due to error", w.address)
+					} else {
+						w.idle = true
+						log.Print("Value of OK: ", reply.OK)
+					}
+					break
 				} else {
-					w.idle = true
-					log.Print("Value of OK: ", reply.OK)
+					continue
 				}
-				break
-			} else {
-				continue
 			}
+
 		}
 	}
 }
