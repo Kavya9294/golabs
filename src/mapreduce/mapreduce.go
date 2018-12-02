@@ -1,16 +1,18 @@
 package mapreduce
 
-import "fmt"
-import "os"
-import "log"
-import "strconv"
-import "encoding/json"
-import "sort"
-import "container/list"
-import "net/rpc"
-import "net"
-import "bufio"
-import "hash/fnv"
+import (
+	"bufio"
+	"container/list"
+	"encoding/json"
+	"fmt"
+	"hash/fnv"
+	"log"
+	"net"
+	"net/rpc"
+	"os"
+	"sort"
+	"strconv"
+)
 
 // import "os/exec"
 
@@ -64,10 +66,10 @@ type MapReduce struct {
 	Workers map[string]*WorkerInfo
 
 	// add any additional state here
-  // number of workers available
-  nWorkers        int
-  //track if a worker is done
-  workDone        chan bool
+	// number of workers available
+	nWorkers int
+	//track if a worker is done
+	freeWorkers chan *WorkerInfo
 }
 
 func InitMapReduce(nmap int, nreduce int,
@@ -82,7 +84,7 @@ func InitMapReduce(nmap int, nreduce int,
 	mr.DoneChannel = make(chan bool)
 
 	// initialize any additional state here
-  mr.nWorkers = 0
+	mr.nWorkers = 0
 	return mr
 }
 
@@ -96,7 +98,7 @@ func MakeMapReduce(nmap int, nreduce int,
 
 func (mr *MapReduce) Register(args *RegisterArgs, res *RegisterReply) error {
 	DPrintf("Register: worker %s\n", args.Worker)
-  mr.nWorkers++
+	mr.nWorkers++
 	mr.registerChannel <- args.Worker
 	res.OK = true
 	return nil
@@ -198,7 +200,7 @@ func ihash(s string) uint32 {
 // partitions.
 func DoMap(JobNumber int, fileName string,
 	nreduce int, Map func(string) *list.List) {
-    log.Print("In DOMAP of master")
+	log.Print("In DOMAP of master")
 	name := MapName(fileName, JobNumber)
 	file, err := os.Open(name)
 	if err != nil {
